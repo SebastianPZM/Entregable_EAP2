@@ -1,0 +1,597 @@
+---   
+title: "Dashboard de consumo de gobierno"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    theme: sandstone
+---
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(rio)
+library(tidyverse)
+```
+
+Exploración de data {}
+===================================== 
+
+ Column {data-width=500}
+-------------------------------------------------   
+### Variables a utilizar
+    
+```{r}
+library(readr)
+data_entregable <- read_csv("data_entregable.csv")
+data_entregable = subset(data_entregable, Year == "2021")
+```
+
+```{r}
+data_entregable_2021=data_entregable|>
+  filter(Year==2021)
+```
+
+```{r}
+data_entregablecc <- data_entregable[complete.cases(data_entregable), ]
+```
+
+
+```{r}
+data_entregable_2021 <- data_entregable_2021 %>%
+  mutate(Region = recode(Region,
+                          "Caucasus & Central Asia" = "Asia Central y Caucaso",
+                         "East Asia" = "Asia del Este",
+                         "Eastern Europe" = "Europa del Este",
+                         "Latin America & the Caribbean" = "Latinoamérica y el Caribe",
+                         "Middle East & North Africa" = "Medio Oriente y Africa del norte",
+                         "North America" = "Norteamérica",
+                         "Oceania" = "Oceania",
+                         "South Asia" = "Asia del sur",
+                         "Sub-Saharan Africa" = "África debajo del Sahara",
+                         "Western Europe" = "Europa occidental"
+                         ))
+```
+
+
+En la data se encuentran, aparte de las variables a analizar, las variables de año, país y región a la que pertenece cada uno.
+
+Las variables a utilizar serán el consumo de gobierno, el crecimiento económico, la regulación económica, la libertad de expresión y el dinero sólido.
+El consumo de gobierno será utilizado como variable dependiente, se analizará si las otras variables la explican. El dinero sólido será la variable de control. 
+
+Una breve explicación de lo que significa cada variable, a mayor el concepto de la variable, mayor será el indice:
+
+- Consumo de gobierno: Mide el consumo del gobierno según al año analizado. Proporción del PBI utilizado del gobierno.
+
+- Crecimiento económico: Mide el crecimiento económico del país respecto al año anterior, toma al PBI como indice.
+
+- Regulación económica: Mide la regulacion economica interna en general de un país. A mayor la variable, más está limitado el mercado económico.
+
+- Libertad de expresión: Mide la libertad de expresión. O sea a mayor el indice, mayor será la libertad de movimientos para expresarse. 
+
+- Dinero sólido: Signufica el valor real inmune al cambio del poder adquisitivo en un país como por ejemplo a las divisas. Mediante este indice se podría predecir la dirección respecto a un aumento o disminución.
+
+Todas en escala del 0-10. A mayor el indíce, mayor será el concepto. 
+
+Los gráficos analizan las variables solo para el 2021 como explolatorio.
+
+
+### Grafico de proporción de paises por regiones
+
+```{r}
+data_circular =data_entregable_2021|>
+  count(Region)
+
+data_circular <- data_circular|>
+  mutate(fraction = n / sum(n))
+
+data_circular <- data_circular|>
+  mutate(ymax = cumsum(fraction),
+         ymin = c(0, head(ymax, n = -1)))
+
+ggplot(data_circular, aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3, fill = Region)) +
+  geom_rect() +
+  geom_text(aes(label = paste(round(fraction * 100, 1), "%"), y = (ymin + ymax) / 2, x = 3.5), size = 3.8, family="serif") +
+  coord_polar(theta = "y") +
+  xlim(c(2, 4)) +
+  theme_void() +
+  theme(legend.position = "right") 
+
+```
+
+
+
+
+
+ Column {data-width=500} {.tabset}
+--------------------------------------------
+### Consumo de gobierno por regiones
+
+```{r}
+data_regiones<- data_entregable_2021 %>%
+  group_by(Region) %>%
+  summarise(mean_con = mean(Consumo_gob))
+
+
+reg_com <- ggplot(data_regiones, aes(x = reorder(Region, mean_con), y = mean_con, fill=Region)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Consumo de gobierno en el 2021",
+       subtitle = "por regiones",
+       x = " ",
+       y = "Escala 0 - 10") +
+  ylim(0, 10) +
+  geom_text(aes(label = paste0(round(mean_con, 2))), vjust = 0.5, hjust = -1, color = "black", size = 3)+
+  theme(legend.position = "none")+
+  guides(fill = FALSE) 
+
+library(ggthemes)
+reg_com+theme_minimal()
+
+```
+   
+   
+### Crecimiento economico por regiones
+
+```{r}
+data_regiones1<- data_entregable_2021 %>%
+  group_by(Region) %>%
+  summarise(mean_cre = mean(Crecimiento_eco))
+
+
+reg_cre <- ggplot(data_regiones1, aes(x = reorder(Region, mean_cre), y = mean_cre, fill=Region)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Crecimiento económico en el 2021",
+       subtitle = "por regiones",
+       x = " ",
+       y = "Escala 0 - 10") +
+  ylim(0, 10) +
+  geom_text(aes(label = paste0(round(mean_cre, 2))), vjust = 0.5, hjust = -1, color = "black", size = 3)+
+  theme(legend.position = "none")+
+  guides(fill = FALSE) 
+
+library(ggthemes)
+reg_cre+theme_minimal()
+
+```
+
+### Regulación economica por regiones
+
+
+```{r}
+data_regiones2<- data_entregable_2021 %>%
+  group_by(Region) %>%
+  summarise(mean_reg = mean(Regulacion_eco))
+
+
+reg_reg <- ggplot(data_regiones2, aes(x = reorder(Region, mean_reg), y = mean_reg, fill=Region)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Regulación económica en el 2021",
+       subtitle = "por regiones",
+       x = " ",
+       y = "Escala 0 - 10") +
+  ylim(0, 10) +
+  geom_text(aes(label = paste0(round(mean_reg, 2))), vjust = 0.5, hjust = -1, color = "black", size = 3)+
+  theme(legend.position = "none")+
+  guides(fill = FALSE) 
+
+library(ggthemes)
+reg_reg+theme_minimal()
+
+```
+
+### Libertad de expresión por regiones
+
+
+```{r}
+data_regiones3<- data_entregable_2021 %>%
+  group_by(Region) %>%
+  summarise(mean_lib = mean(Libertad_exp))
+
+
+reg_lib <- ggplot(data_regiones3, aes(x = reorder(Region, mean_lib), y = mean_lib, fill=Region)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Libertad de expresión en el 2021",
+       subtitle = "por regiones",
+       x = " ",
+       y = "Escala 0 - 10") +
+  ylim(0, 10) +
+  geom_text(aes(label = paste0(round(mean_lib, 2))), vjust = 0.5, hjust = -1, color = "black", size = 3)+
+  theme(legend.position = "none")+
+  guides(fill = FALSE) 
+
+library(ggthemes)
+reg_lib+theme_minimal()
+
+```
+
+### Dinero sólido por regiones
+
+
+```{r}
+data_regiones4<- data_entregable_2021 %>%
+  group_by(Region) %>%
+  summarise(mean_din = mean(Dinero_sol))
+
+
+reg_din <- ggplot(data_regiones4, aes(x = reorder(Region, mean_din), y = mean_din, fill=Region)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Dinero sólido en el 2021",
+       subtitle = "por regiones",
+       x = " ",
+       y = "Escala 0 - 10") +
+  ylim(0, 10) +
+  geom_text(aes(label = paste0(round(mean_din, 2))), vjust = 0.5, hjust = -1, color = "black", size = 3)+
+  theme(legend.position = "none")+
+  guides(fill = FALSE) 
+
+library(ggthemes)
+reg_din+theme_minimal()
+
+```
+   
+Descripción de variables {}
+=====================================      
+
+ Column {data-width=500}
+--------------------------------------------
+### Variable dependiente e independiente
+
+La variable de consumo de gobierno será objeto de este análisis para ver si las variables seleccionadas pueden afectarla. 
+Por otro lado, ya es necesario la vinculación de la variable central con las independientes y la de control.
+
+De por sí, la data en el último año actualizado, 2021, provee una variable confiable al tener solo 5 casos en el que es 0 (rango del 0-10). Su media es es 5.28, cerca a la mediana, 5.37. Esta tendencia puede significar  que el consumo de gobierno de los países se está minimizando y esto puede aludir en la efectividad del manejo economico. Esto se puede decir ya que 10 años antes, su media se encontraba en 5.62 y la mediana 5.97.
+
+
+### Boxplot de consumo de gobierno por regiones en el 2021
+
+```{r}
+
+ggplot(data_entregable_2021, aes(x = Region, y = Consumo_gob, fill = Region)) +
+  geom_boxplot()+
+  coord_flip()+
+  labs(x = "Región",
+       y = "Consumo de gobierno") +
+  theme_minimal()+
+  theme(legend.position = "none")
+
+```
+
+
+ Column {data-width=500}
+-----------------------------------------------------
+
+### Summary de variables númericas
+```{r}
+library(DT)
+library(vtable)
+sumtable(data_entregablecc, out = "return")%>%
+  datatable(options = 
+              list(c(scrollX=TRUE)))
+```
+
+### Str de todas las variables
+
+```{r}
+library(DT)
+library(vtable)
+vtable(data_entregablecc, out = "return")%>%
+  datatable(options = 
+              list(c(scrollX=TRUE)))
+```
+
+
+Column {data-width=500} {.tabset}
+-----------------------------------------------------------------------
+
+### Con crecimiento económico
+
+```{r}
+g2 <- ggplot(data_entregable_2021, aes(x = Consumo_gob, y = Crecimiento_eco, color= Region)) +
+  geom_point(size = 1.5) +
+  labs(title = "Relación entre Consumo de gobierno y Crecimiento económico",
+       x = "Consumo de Gobierno",
+       y = "Crecimiento económico")+
+  ylim(0, 10) 
+g2+theme_tufte()
+```
+
+
+### Con regulación económica
+
+```{r}
+g3 <- ggplot(data_entregable_2021, aes(x = Consumo_gob, y = Regulacion_eco, color= Region)) +
+  geom_point(size = 1.5) +
+  labs(title = "Relacion entre consumo de gobierno y Regulación Económica",
+       x = "Consumo de Gobierno",
+       y = "Regulación económica")+
+  ylim(0, 10)
+g3+theme_tufte()
+```
+
+
+### Con Libertad de expresión
+
+```{r}
+g4 <- ggplot(data_entregable_2021, aes(x = Consumo_gob, y = Libertad_exp, color= Region)) +
+  geom_point(size = 1.5) +
+  labs(title = "Relacion entre consumo de gobierno y Libertad de expresión",
+       x = "Consumo de Gobierno",
+       y = "Libertad de expresión")+
+  ylim(0, 10)
+g4+theme_tufte()
+```
+
+### Con Dinero sólido
+
+```{r}
+g5 <- ggplot(data_entregable_2021, aes(x = Consumo_gob, y = Dinero_sol, color= Region)) +
+  geom_point(size = 1.5) +
+  labs(title = "Relacion entre consumo de gobierno y Dinero sólido",
+       x = "Consumo de Gobierno",
+       y = "Dinero Sólido")+
+  ylim(0, 10)
+g5+theme_tufte()
+```
+
+
+
+   
+Modelos de regresión {}
+=====================================     
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+### Gauss
+
+En una ecuación seleccionando como objeto al consumo de gobierno, se ve que todas las variables son negativas y que la regulación económica es la única variable significativa. Sin embargo en primera estancia se da a cuenta  que se deba estandarizar para ver su verdadero efecto. El R2 es muy bajo.
+
+A continuación, la segunda regresión muestra un cambio significativo en el AIC. Además se ve que la regulación económica es la única que aún tiene gran efecto con -0.264 con significancia de 0.01.
+
+El tercer modelo que no está estandarizado muestra que ninguna variable es significativa debido a la variable de control, dinero sólido. Sin embargo, este último es el único significativo con 0.05. El R2 se ve incrementado ligeramente.
+
+Por último, están los dos modelos regresionados. Se puede ver que se todas las variables con excepción del dinero sólido es la única significante. El R2 es ligeramente mayor por la variable de control. 
+
+>En esta variable también se toma la data filtrada del 2021. Existen 165 variables. 
+
+
+Column {data-width=400} {.tabset}
+-----------------------------------------------------------------------
+
+```{r}
+data_entregablecc$pais_year <- paste(data_entregablecc$Pais, data_entregablecc$Year, sep = "_")
+```
+
+
+### Regresión
+    
+
+```{r}
+library(modelsummary)
+h1=formula(Consumo_gob~Crecimiento_eco+Regulacion_eco+Libertad_exp)
+
+rl1=lm(h1, data = data_entregable_2021)
+
+model1=list('OLS'=rl1)
+modelsummary(model1, title = "Regresión solo con variables independientes",
+             stars = TRUE,
+             output = "kableExtra")
+```
+    
+> Variable dependiente= Consumo de gobierno; Variables independientes= Crecimiento economico, Regulación económica y Libertad de expresión
+
+### Regresión estandarizada
+
+```{r}
+
+h1e=formula(scale(Consumo_gob)~scale(Crecimiento_eco)+scale(Regulacion_eco)+scale(Libertad_exp))
+
+rl1e=lm(h1e, data = data_entregable_2021)
+
+model1=list('OLS'=rl1e)
+modelsummary(model1, title = "Regresión solo con variables independientes estandarizadas",
+             stars = TRUE,
+             output = "kableExtra")
+```
+
+> Variable dependiente= Consumo de gobierno; Variables independientes= Crecimiento economico, Regulación económica y Libertad de expresión
+
+### Regresión con variable de control
+
+```{r}
+h1c=formula(Consumo_gob~Crecimiento_eco+Regulacion_eco+Libertad_exp+Dinero_sol)
+
+rl1c=lm(h1c, data = data_entregable_2021)
+
+model1c=list('Regresión'=rl1,'Regresión con variable de control'=rl1c)
+modelsummary(model1c, title = "Regresión solo con variables independientes y control",
+             stars = TRUE,
+             output = "kableExtra")
+```
+
+>> Variable dependiente= Consumo de gobierno; Variables independientes= Crecimiento economico, Regulación económica y Libertad de expresión; Variable de control= Dinero sólido
+
+
+
+### Regresión con variable de control estandarizadas
+
+```{r}
+library(knitr)
+library(modelsummary)
+
+h1control=formula(scale(Consumo_gob)~scale(Crecimiento_eco)+scale(Regulacion_eco)+scale(Libertad_exp)+scale(Dinero_sol))
+
+rl2=lm(h1control, data = data_entregable_2021)
+
+modelslm=list('Regresión estandarizada'=rl1e,'Regresión con control estandarizada'=rl2)
+modelsummary(modelslm, title = "Regresiones Lineales estandarizadas",
+             stars = TRUE,
+             output = "kableExtra")
+```
+
+> Variable dependiente= Consumo de gobierno; Variables independientes= Crecimiento economico, Regulación económica y Libertad de expresión; Variable de control= Dinero sólido
+
+### Comparar modelos
+
+```{r}
+library(magrittr)
+library(knitr)
+tanova=anova(rl1,rl1c)
+
+kable(tanova,
+      caption = "Tabla ANOVA para comparar modelos")%>%kableExtra::kable_styling(full_width = T)
+```
+
+>Se escoge el segundo modelo. 
+
+
+Column {data-width=500} {.tabset}
+-----------------------------------------------------------------------
+### Linealidad
+
+```{r}
+plot(rl1c, 1)
+```
+
+### Homocedasticidad
+
+```{r}
+plot(rl1c, 3)
+```
+
+### Normalidad 
+
+```{r}
+plot(rl1c, 2)
+
+
+
+shapiro.test(rl1c$residuals)
+```
+
+### No multicolinealidad
+
+```{r}
+library(DescTools)
+VIF(rl1c)
+```
+
+> Menores a 3 todos las variables.
+
+
+### Valores influyentes
+
+```{r}
+plot(rl1c, 5)
+
+
+checkReg2=as.data.frame(influence.measures(rl1c)$is.inf)
+checkReg2[checkReg2$cook.d & checkReg2$hat,c('cook.d','hat')]%>%kable(caption = "Valores Influyentes criticos")%>%kable_styling(full_width = F)
+```
+
+
+
+Analisis conglomerado y clusterización{}
+=====================================     
+
+Column {data-width=500}
+-------------------------------------------------------------
+
+### Analisis para pasos para la clusterización 
+
+Se empezará la clusterización y tomará como rowname una nueva variable que será el país para que se puedan clasificar los subgrupos y no se pierdan los datos.
+
+Por un lado se ve que la correlación entre la variable central y algunos valores no son significativamente altos. La regulación económica y el dinero sólido son los valores más altos.
+
+En el proceso de clusterización, se usa la estrategia aglomerativa. Según el algoritmo de agnes se sugiere que hayan 2 clusters.
+El uso del algoritmo al mismo tiempo brinda valores mal clusterizados. Hay 32 valores de esa indole.
+
+Finalmente, se compara los clusters.
+
+
+
+### Gráfico de correlación
+
+```{r}
+library(ggcorrplot)
+corr_data=names(data_entregable_2021)[c(4,5,6,7,8)]
+corr_data1=data_entregable_2021[,corr_data]
+ggcorrplot(cor(corr_data1),lab = T,show.diag = T)
+```
+> Con especial enfoque en la correlación entre el consumo de gobierno respecto a las otras variables.
+
+
+
+Column {data-width=500}
+-------------------------------------------------------------
+### Inicio del proceso de clusterización: se calcula número de clusters
+
+
+```{r}
+library(factoextra)
+dataClus=data_entregable_2021[,c(4:8)]
+row.names(dataClus)=data_entregable_2021$Pais
+library(cluster)
+g.dist = daisy(dataClus, metric="gower")
+```
+
+```{r}
+fviz_nbclust(dataClus, hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F,hc_func = "agnes")
+```
+
+### Clusterizar vía AGNES
+
+```{r}
+set.seed(123)
+
+res.agnes<- hcut(g.dist, k = 2,hc_func='agnes',hc_method = "ward.D")
+
+dataClus$agnes=res.agnes$cluster
+
+head(dataClus,30)%>%kbl()%>%kable_styling()
+
+```
+
+
+Column {data-width=500}{.tabset}
+---------------------------------------
+### Dendograma
+
+```{r}
+fviz_dend(res.agnes, cex = 0.7, horiz = T,main = "")
+```
+
+>2 clusters
+
+### Evaluar uso
+
+```{r}
+fviz_silhouette(res.agnes,print.summary = F)
+```
+
+### Viendo valores mal clusterizados
+
+```{r}
+silAGNES=data.frame(res.agnes$silinfo$widths)
+silAGNES$Pais=row.names(silAGNES)
+poorAGNES=silAGNES[silAGNES$sil_width<0,'Pais']%>%sort()
+poorAGNES
+```
+
+>32 países de 165
+
+
+### Promedio de cada cluster
+
+```{r}
+aggregate(.~ agnes, data=dataClus,mean)
+```
+
+> El segundo cluster se podría decir que agrupa a los mejores países respecto a las variables.
+
+
