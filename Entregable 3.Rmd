@@ -1,0 +1,170 @@
+---   
+title: "Entregable 3"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(rio)
+library(tidyverse)
+library(ggplot2)
+```
+
+Exploración de data {}
+===================================== 
+    
+### Variables a utilizar
+    
+```{r}
+library(readr)
+data_entregable <- read_csv("data_entregable.csv")
+```
+
+Las variables a utilizar serán el consumo de gobierno, el crecimiento económico, la regulación económica, la libertad de expresión y el dinero sólido.
+El consumo de gobierno será utilizado como variable dependiente, se tratará de explicar si las otras variables la explican. El dinero sólido será la variable de control. 
+
+Dinero sólido: Significa el valor real inmune al cambio del poder adquisitivo en un país como por ejemplo a las divisas. 
+
+
+###
+
+```{r}
+g1 <- ggplot(points, aes(x = v2x_polyarchy, y = democracy)) +
+geom_point(size = 1.5, shape = 23) +
+geom_text(label = points$pais, vjust = -0.5, hjust = 1, color = "black", size = 3) +
+labs(title = "Apoyo a la democracia e índice de democracia electoral \nen América Latina y El Caribe",
+subtitle = "Barómetro de las Américas y V-Dem",
+x = "Índice de democracia electoral",
+y = "Apoyo a la democracia") +
+theme_fivethirtyeight()
+```
+
+
+### Gráficos
+
+```{r}
+
+```
+   
+Descripción de variables {}
+=====================================      
+
+### Variable dependiente
+
+La variable de consumo de gobierno será objeto de este análisis para ver si las variables seleccionadas pueden afectarla. 
+De por sí, la data en el último año actualizado, 2021, provee una variable confiable al tener solo 5 casos en el que es 0 (rango del 1-10). Su media es es 5.28, cerca a la mediana, 5.37. Esta tendencia significa que el consumo de gobierno de los países se está minimizando y esto puede aludir en la efectividad del manejo economico. Esto se puede decir ya que 10 años antes, su media se encontraba en 5.62 y la mediana 5.97.
+
+### Gráficos
+
+
+   
+Modelos de regresión {}
+=====================================     
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### Gauss
+
+En una ecuación seleccionando como objeto al consumo de gobierno, se ve que las variables son significativas con excepción a crecimiento económico. Sin embargo en primera estancia se da a cuenta  que se deba estandarizar. 
+A continuación, la segunda regresión muestra un cambio singnificativo en el AIC. El crecimiento económico aún no es significativo. 
+Por último, se añade la variable de control, el dinero sólido. Se puede ver que se explica también a la dependiente. Se resalta que las variables afectan negativamente al consumo de gobierno. 
+
+
+Column {data-width=500} {.tabset}
+-----------------------------------------------------------------------
+
+### Regresión
+    
+
+```{r}
+library(modelsummary)
+h1=formula(Consumo_gob~Crecimiento_eco+Regulacion_eco+Libertad_exp)
+
+rl1=lm(h1, data = data_entregable)
+
+model1=list('OLS'=rl1)
+modelsummary(model1, title = "Regresión solo con variables independientes",
+             stars = TRUE,
+             output = "kableExtra")
+```
+    
+> Variable dependiente= Consumo de gobierno; Variables independientes= Crecimiento economico, Regulación económica y Libertad de expresión
+
+### Regresión estandarizada
+
+```{r}
+
+h1e=formula(scale(Consumo_gob)~scale(Crecimiento_eco)+scale(Regulacion_eco)+scale(Libertad_exp))
+
+rl1e=lm(h1e, data = data_entregable)
+
+model1=list('OLS'=rl1e)
+modelsummary(model1, title = "Regresión solo con variables independientes estandarizadas",
+             stars = TRUE,
+             output = "kableExtra")
+```
+
+> Variable dependiente= Consumo de gobierno; Variables independientes= Crecimiento economico, Regulación económica y Libertad de expresión
+
+### Regresión con variable de control
+
+```{r}
+library(knitr)
+library(modelsummary)
+
+h1control=formula(scale(Consumo_gob)~scale(Crecimiento_eco)+scale(Regulacion_eco)+scale(Libertad_exp)+scale(Dinero_sol))
+
+rl2=lm(h1control, data = data_entregable)
+
+modelslm=list('Regresión estandarizada'=rl1e,'Regresión con control estandarizada'=rl2)
+modelsummary(modelslm, title = "Regresiones Lineales estandarizadas",
+             stars = TRUE,
+             output = "kableExtra")
+```
+
+> Variable dependiente= Consumo de gobierno; Variables independientes= Crecimiento economico, Regulación económica y Libertad de expresión; Variable de control= Dinero sólido
+
+Column {data-width=500} {.tabset}
+-----------------------------------------------------------------------
+### Linealidad
+
+```{r}
+plot(rl2, 1)
+```
+
+### Homocedasticidad
+
+```{r}
+plot(rl2, 3)
+```
+
+### Normalidad 
+
+```{r}
+plot(rl2, 2)
+```
+
+
+### Valores influyentes
+
+```{r}
+plot(rl2, 5)
+```
+
+
+
+
+
+Modelo de correlación {}
+=====================================     
+
+### 
+
+
+
+
